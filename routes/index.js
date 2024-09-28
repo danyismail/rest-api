@@ -13,12 +13,12 @@ module.exports = fp(
 
         appInstance.get('/users', {}, async function (request, reply) {
             console.log(appInstance.db, "check decorator")
-            const data = await userService.getList(appInstance)
+            const data = await userService.getList(request.query)
             return reply.send(
                 {
                     "statusCode" : 200,
                     "message" : "success",
-                    "data" : data
+                    ...data
                 }
             )
         });

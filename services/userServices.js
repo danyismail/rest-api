@@ -1,6 +1,10 @@
 module.exports = function(appInstance) {
-    async function getList() {
-       return await tableName().select("*")
+    async function getList(qs) {
+        return await paginate({
+            page: parseInt(qs.page),
+            perPage: parseInt(qs.perPage),
+            q : qs.q ? String(qs.q).trim() : null
+        })
     }
     async function create({name, email, status}) {
         try {
@@ -39,6 +43,53 @@ module.exports = function(appInstance) {
             return await tableName().delete().where({id})
         } catch (error) {
             throwError(error)
+        }
+    }
+
+    //create function paginate
+    async function paginate({
+        page, 
+        perPage, 
+        q,
+    }) {
+        console.log(page, perPage, q)
+        try {
+            //get total value
+            const {total} = await tableName()
+            .where((query)=>{
+                if(q) {
+                    query.whereILike("name", `%${q}%`).orWhereILike("email", `%${q}%`)
+                }
+            })
+            .count("id as total")
+            .first()
+
+            //  get current page
+            const currentPage = Math.min(page, perPage)
+            const offset = (currentPage - 1) * perPage
+            const lastPage = Math.ceil(total / perPage)
+            
+            //data object
+            const data  = await tableName()
+            .where((query)=>{
+                if(q) {
+                    query.whereILike("name", `%${q}%`).orWhereILike("email", `%${q}%`)
+                }
+            })
+            .select("*")
+            .limit(perPage)
+            .offset(offset) 
+            return {data, total, currentPage, offset, lastPage, firstPage: 1, q}
+        } catch (error) {
+            
+        }
+        return {
+            total,
+            currentPage,
+            offset,
+            lastPage,
+            firstPage: 1,
+            q
         }
     }
 
