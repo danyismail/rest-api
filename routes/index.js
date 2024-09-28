@@ -1,7 +1,9 @@
 const fp = require('fastify-plugin')
-
+const UserService = require('../services/userServices')
 module.exports = fp(
     async function(appInstance){
+        //inject and initialize userService
+        const userService =  UserService(appInstance)
         appInstance.get('/', {}, async function () {
             return {
                 "app" : "rest-api",
@@ -10,35 +12,24 @@ module.exports = fp(
         });
 
         appInstance.get('/users', {}, async function (request, reply) {
-            console.log(appInstance.dbDecorator, "check decorator")
-            try {
-                const data = await this.dbDecorator("users").select("*")
-                reply.send(
-                    {
-                        "statusCode" : 200,
-                        "message" : "success",
-                        "data" : data
-                    }
-                )
-            } catch (error) {
-                reply.send({
-                    statusCode : 500,
-                    message: `got error ${error}`,
-                });
-            }
+            console.log(appInstance.db, "check decorator")
+            const data = await userService.getList(appInstance)
+            return reply.send(
+                {
+                    "statusCode" : 200,
+                    "message" : "success",
+                    "data" : data
+                }
+            )
         });
 
         appInstance.post('/user', {}, async function (request, reply) {
             try {
-                const {name, email , status} = request.body
-                data = await this.dbDecorator("users").insert({
-                    name,
-                    email,
-                    status
-                })
-                reply.send({
+                const user = await userService.create(request.body)
+                return reply.send({
                     statusCode : 200,
-                    message: "new user created successfully | user id " + data[0]
+                    message: "new user created successfully",
+                    payload: user
                 });
             } catch (error) {
                 reply.send({
@@ -49,46 +40,36 @@ module.exports = fp(
         });
 
         appInstance.get('/user/:userId', {}, async function (request, reply) {
-            const data = await this.dbDecorator("users").select("*").where({id: request.params.userId}).then(data => {
-                if (data == 0) {
-                    reply.send({
-                        statusCode : 404,
-                        message: "user not found",
-                    });
+            const data = await userService.show(request.params.userId)
+            return reply.send(
+                {
+                    "statusCode" : 200,
+                    "message" : "success",
+                    "data" : data
                 }
-                reply.send({
-                    statusCode : 200,
-                    message: "user found",
-                    data
-                });
-            })
-            .catch(error => {
-                reply.send({
-                    statusCode : 500,
-                    message: `got error ${error}`,
-                });
-            })
+            )
+        });
+
+        appInstance.patch('/user/:userId', {}, async function (request, reply) {
+            const data = await userService.update(request.body, request.params.userId)
+            return reply.send(
+                {
+                    "statusCode" : 200,
+                    "message" : "success",
+                    "data" : data
+                }
+            )
         });
 
         appInstance.delete('/user/:userId', {}, async function (request, reply) {
-            const data = await this.dbDecorator("users").delete("*").where({id: request.params.userId}).then(data => {
-                if (data == 0) {
-                    reply.send({
-                        statusCode : 404,
-                        message: "user not found",
-                    });
+            const data = await userService.destroy(request.params.userId)
+            return reply.send(
+                {
+                    "statusCode" : 200,
+                    "message" : "success",
+                    "data" : data
                 }
-                reply.send({
-                    statusCode : 200,
-                    message: "deleted successfully",
-                });
-            })
-            .catch(error => {
-                reply.send({
-                    statusCode : 500,
-                    message: `got error ${error}`,
-                });
-            })
+            )
         });
     },
     {name:"app-plugin-routes"},

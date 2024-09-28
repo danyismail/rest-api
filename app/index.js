@@ -1,8 +1,11 @@
 const Fastify = require('fastify')
 const logger = require('../configs/logger')
-const routes = require('../routes')
 const {ignoreTrailingSlash} = require('../configs/route')
+//plugin routes
+const routes = require('../routes')
+//plugin db
 const dbPlugin = require('./plugins/knex')
+
 const fastify = Fastify({
     logger,
     ignoreTrailingSlash
